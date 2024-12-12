@@ -1,0 +1,14 @@
+#!/usr/bin/env ./instamenu
+
+declare -a keys=(a s d f h j k l w e r u i o)
+declare -i current_key=0
+
+next_key() {
+  key "${keys[current_key]}" "$@"
+  current_key+=1
+}
+
+menu yarn
+while read script; do
+  next_key "$script" "yarn run $script"
+done < <(jq -r '.scripts | keys[]' package.json)

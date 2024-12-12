@@ -1,0 +1,11 @@
+#!/usr/bin/env ./instamenu
+
+menu git
+key s 'status'    'git status'
+key l 'log'       'git log --oneline -n 10'
+key b 'branches'  'enter-menu git_branches'
+
+menu git_branches branches
+key l 'local'     'git branch -l'
+key r 'remote'    'git branch -r'
+

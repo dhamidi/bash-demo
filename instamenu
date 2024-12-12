@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+
+declare -A bound_keys=()
+declare -a menus=()
+declare -a history=()
+declare current_menu
+
+menu() {
+  local name="$1"
+  local label="${2:-$name}"
+  menus+=($name)
+  current_menu=$name
+  declare -gn menu_label=${name}_label
+  menu_label="$label"
+  declare -gA "${name}_keys" "${name}_labels"
+  declare -gn current_menu_keys="${name}_keys"
+  declare -gn current_menu_labels="${name}_labels"
+}
+
+key() {
+  local key label command
+  key="$1"
+  label="$2"
+  command="$3"
+
+  bound_keys["$key"]=true
+  current_menu_keys["$key"]="$command"
+  current_menu_labels["$key"]="$label"
+}
+
+clear_keymap() {
+  for key in "${!bound_keys}"; do
+    bind -r "$key"
+  done
+  bind -x '"q":exit'
+  bind -x '"\C-b":go_back'
+  bind -x '"\C-l":go_to_toplevel'
+}
+
+go_to_toplevel() {
+  history=()
+  enter-menu "${menus[0]}"
+}
+
+go_back() {
+  if [[ "${#history[@]}" -gt 1 ]]; then
+    local next_menu=${history[-2]}
+    history=(${history[@]:0:${#history[@]}-2})
+    enter-menu "$next_menu"
+  fi
+}
+
+enter-menu() {
+  local menu="$1"
+  local -n menu_label="${menu}_label"
+  history+=("$menu")
+  printf "== %s == (%s)\n" "$menu_label" "${history[*]:0:${#history[@]}-1}"
+  local -n keys="${menu}_keys"
+  local -n labels="${menu}_labels"
+  clear_keymap
+  for key in "${!keys[@]}"; do
+    printf "[%s] %s\n" "$key" "${labels[$key]}"
+    bind -x "$(printf '"%s":%s' "$key" "${keys[$key]}")"
+  done
+}
+
+case $0 in
+*instamenu*)
+  exec bash --init-file <(cat $0 "$@") -i
+  ;;
+-bash) printf "Loaded.\n" ;;
+*)
+  PS1='[q] quit\n'
+  PROMPT_COMMAND='enter-menu ${menus[0]}'
+  ;;
+esac
